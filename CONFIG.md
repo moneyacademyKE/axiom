@@ -38,6 +38,8 @@ Axiom configs are EDN data, not code. The current config schema is **v1**: small
 | `:stall-after` | No-progress budget. |
 | `:thrash-after` | No-convergence budget. |
 | `:max-rollbacks` | Rollback recovery budget. |
+| `:max-attempts` | Total act-attempt budget; exhaustion halts as `:budget-exhausted`. |
+| `:max-wall-ms` | Wall-clock budget in milliseconds; exhaustion halts as `:budget-exhausted`. |
 | `:escalations` | Ladder, default `[:rollback :reseed :reframe :escalate-model]`. |
 | `:models` | Model names used by `{{model}}` and harness profiles. |
 | `:hot-reload` | `true` enables config reload between iterations. |
@@ -78,6 +80,16 @@ Shell acts use `bash -c`, so keep config files trusted and local.
 ```
 
 Axiom builds an argv vector from the harness profile, invokes the external CLI, then ignores self-report and re-observes the world. A harness saying "done" means nothing unless the predicates pass.
+
+### Operator controls
+
+```sh
+./.tools/bin/bb axiom.clj pause examples/steady.edn
+./.tools/bin/bb axiom.clj resume examples/steady.edn
+./.tools/bin/bb axiom.clj stop examples/steady.edn
+```
+
+Controls are marker files under `<workdir>/.axiom-control`. The run loop checks them between iterations: `pause` halts with `:operator-paused`, `resume` clears the pause marker, and `stop` halts with `:operator-stop`. There is no daemon socket and no hidden remote-control surface.
 
 ## Built-in bundles
 

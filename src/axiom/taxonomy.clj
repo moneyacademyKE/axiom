@@ -20,6 +20,15 @@
    :max-iters       {:class :budget-exhausted
                      :severity :warning
                      :retryable? true}
+   :budget-exhausted {:class :budget-exhausted
+                      :severity :warning
+                      :retryable? false}
+   :operator-paused {:class :operator-paused
+                     :severity :info
+                     :retryable? true}
+   :operator-stop   {:class :operator-stopped
+                     :severity :info
+                     :retryable? false}
    :config-invalid  {:class :config-invalid-after-hot-reload
                      :severity :critical
                      :retryable? false}

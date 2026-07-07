@@ -3,6 +3,18 @@
 > Architecture Decision Records (ADR-style). Append-only, newest first. Each entry: context -> decision -> consequence.
 
 ---
+## ADR-0018 -- Phase 10: file-backed operator controls accepted
+**Date:** 2026-07-07 - **Status:** Accepted
+
+**Context:** ADR-0015 deliberately deferred pause/resume/stop until they could be represented as explicit run-control marker files with tests. Axiom should remain a boring supervisor, not grow a daemon socket or hidden process-control channel.
+
+**Decision:** Add `axiom.control`, a tiny filesystem control plane under `<workdir>/.axiom-control`. `pause` and `stop` write marker files; `resume` clears the pause marker. The run loop checks control state between iterations and halts with `:operator-paused` or `:operator-stop` before another act runs. `status/operator-facts` includes `:control-state`, and the CLI exposes `bb axiom.clj pause|resume|stop <config.edn>` as operator commands. The taxonomy now classifies operator and explicit budget halts instead of reporting them as unknown.
+
+**Evidence:** Full suite green after Phase 10: **76 tests / 424 assertions / 0 failures / 0 errors** (`./.tools/bin/bb -cp src:test -m axiom.run-tests`). New namespace: `axiom.phase10-control-test`.
+
+**Consequence:** Operators can intervene with plain files and auditable CLI commands. Pause is resumable, stop is final for that run, and there is still no new remote attack surface.
+
+---
 ## ADR-0017 -- Phase 8: release-readiness docs accepted
 **Date:** 2026-07-07 - **Status:** Accepted
 

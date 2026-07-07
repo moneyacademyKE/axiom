@@ -12,6 +12,9 @@
     (is (= :no-progress (:class (taxonomy/classify-halt {:reason :stall}))))
     (is (= :dirty-tree-unsafe (:class (taxonomy/classify-halt {:reason :integrity}))))
     (is (= :budget-exhausted (:class (taxonomy/classify-halt {:reason :max-iters}))))
+    (is (= :budget-exhausted (:class (taxonomy/classify-halt {:reason :budget-exhausted}))))
+    (is (= :operator-paused (:class (taxonomy/classify-halt {:reason :operator-paused}))))
+    (is (= :operator-stopped (:class (taxonomy/classify-halt {:reason :operator-stop}))))
     (is (= :config-invalid-after-hot-reload
            (:class (taxonomy/classify-halt {:reason :config-invalid}))))
     (is (= :rollback-limit-hit (:class (taxonomy/classify-halt {:reason :rollback-limit})))))

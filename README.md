@@ -38,11 +38,11 @@ ACQUIRE lock -> OBSERVE world -> ASSERT axioms -> GOAL met?
 
 ## Status
 
-**Phases 0-8 -- shipped & verified (2026-07-07).** Axiom now has the Babashka runner, rollback/checkpoint recovery, escalation/perturbation, observability/ops, example config library, composable axiom bundles, hot-reload semantics, dogfood failure taxonomy, operator status facts, external harness orchestration for tools like `opencode`, and release-readiness docs.
+**Phases 0-10 -- shipped & verified (2026-07-07).** Axiom now has the Babashka runner, rollback/checkpoint recovery, escalation/perturbation, observability/ops, example config library, composable axiom bundles, hot-reload semantics, dogfood failure taxonomy, operator status facts, external harness orchestration for tools like `opencode`, release-readiness docs, real opencode dogfood coverage, and file-backed operator controls.
 
 Verification:
 
-- Full suite: `./.tools/bin/bb -cp src:test -m axiom.run-tests` -- 76 tests, 421 assertions, 0 failures.
+- Full suite: `./.tools/bin/bb -cp src:test -m axiom.run-tests` -- 76 tests, 424 assertions, 0 failures.
 - Phase 0 demos still gate correctly after later phases: steady=0, stall=1, corrupt=1, recover=0.
 - Phase 2 ladder rungs perturb observably: `:reseed` command, `:reframe` prompt index, `:escalate-model` model index, bounded by `:no-convergence` halt.
 - Phase 3 produces status summaries, halt bundles, and optional notifications.
@@ -51,5 +51,7 @@ Verification:
 - Phase 6 exposes pure operator facts and richer `status` output.
 - Phase 7 supervises external harnesses such as `opencode` while still trusting only observed world state.
 - Phase 8 adds config/reference and release checklist docs.
+- Phase 9 dogfoods the live `opencode` ladder against disposable git-backed workspaces.
+- Phase 10 adds file-backed `pause`, `resume`, and `stop` operator controls.
 
 **Still deferred:** distributed/networked runs, GUI, cross-run learning, openspeq permanent-record merge without explicit approval, and a static Go port unless distribution pressure proves Babashka is not enough.

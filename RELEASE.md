@@ -23,14 +23,17 @@ bb -cp src:test -m axiom.run-tests
 ```sh
 ./.tools/bin/bb axiom.clj examples/steady.edn
 ./.tools/bin/bb axiom.clj status examples/stall.edn --last 10
+./.tools/bin/bb axiom.clj pause examples/steady.edn
+./.tools/bin/bb axiom.clj resume examples/steady.edn
+./.tools/bin/bb axiom.clj stop examples/steady.edn
 ```
 
 Exit codes:
 
 | Code | Meaning |
 |---:|---|
-| `0` | Goal fulfilled, or read-only `status` completed |
-| `1` | Supervised run halted (`:stall`, `:integrity`, `:no-convergence`, etc.) |
+| `0` | Goal fulfilled, or read-only/operator command completed (`status`, `pause`, `resume`, `stop`) |
+| `1` | Supervised run halted (`:stall`, `:integrity`, `:no-convergence`, `:operator-paused`, etc.) |
 | `2` | Usage/config loading error |
 
 ## Config schema v1
@@ -58,6 +61,8 @@ Important optional keys:
 | `:escalations` | vector | Ladder rungs, default `[:rollback :reseed :reframe :escalate-model]` |
 | `:reseed` | action map | Optional perturbation command for the reseed rung |
 | `:models` | vector of strings | Model ladder for `:escalate-model` |
+| `:max-attempts` | integer | Total act-attempt budget; halts as `:budget-exhausted` when spent |
+| `:max-wall-ms` | integer | Wall-clock budget in milliseconds; halts as `:budget-exhausted` when spent |
 | `:hot-reload` | boolean | Validate and swap changed config at iteration boundaries |
 | `:notify` | map | Optional halt notifier (`:noop`/`:http`/transport override) |
 | `:harnesses` | map | Custom external harness argv templates |
