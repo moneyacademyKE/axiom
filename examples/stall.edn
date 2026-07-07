@@ -1,0 +1,13 @@
+{:name        "demo-stall"
+ :workdir     "examples/demo"
+ :lock        "examples/demo/.axiom.lock"
+ :log-dir     "examples/demo/.axiom-logs-stall"
+ :observers   {:level-count {:sh "ls level_*.txt 2>/dev/null | wc -l | tr -d ' '" :parse :int}
+               :build-ok    {:sh "test -f .axiom-marker && echo pass || echo fail" :parse :string}}
+ ;; unreachable goal + no-op agent => guaranteed stall
+ :goal        {:op :>= :ref :level-count :value 999}
+ :integrity   [{:op := :ref :build-ok :value "pass"}]
+ :progress    :level-count
+ :act         {:sh "./noop.sh {{attempt}}"}
+ :checkpoint  {:tag-prefix "axiom-stall"}
+ :stall-after 2}

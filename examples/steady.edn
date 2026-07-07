@@ -1,0 +1,12 @@
+{:name        "demo-steady"
+ :workdir     "examples/demo"
+ :lock        "examples/demo/.axiom.lock"
+ :log-dir     "examples/demo/.axiom-logs-steady"
+ :observers   {:level-count {:sh "ls level_*.txt 2>/dev/null | wc -l | tr -d ' '" :parse :int}
+               :build-ok    {:sh "test -f .axiom-marker && echo pass || echo fail" :parse :string}}
+ :goal        {:op :>= :ref :level-count :value 3}
+ :integrity   [{:op := :ref :build-ok :value "pass"}]
+ :progress    :level-count
+ :act         {:sh "./generate.sh {{attempt}}"}
+ :checkpoint  {:tag-prefix "axiom-steady"}
+ :stall-after 3}

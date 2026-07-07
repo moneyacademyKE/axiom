@@ -1,0 +1,25 @@
+# Axiom demo / runtime artifacts
+logs/
+.axiom-logs*/
+.axiom*.lock
+.axiom.*.lock
+.dogfood-*.out
+dogfood-git-run.tsv
+demo/.steady-state
+demo/.corrupt-state
+examples/demo/.axiom-logs*/
+examples/demo/.steady-state
+examples/demo/.corrupt-state
+examples/demo-recover/.axiom-logs*/
+examples/demo-recover/.git/
+examples/demo-recover/.axiom-marker
+examples/demo-recover/level_*.txt
+
+# Release artifacts
+release-dist/
+*.tar.gz
+*.zip
+
+# Babashka / OS
+.bb-*
+.DS_Store

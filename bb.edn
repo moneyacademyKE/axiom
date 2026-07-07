@@ -1,0 +1,4 @@
+{:paths ["src" "test"]
+ :tasks {test {:doc "Run unit tests"
+              :task (let [bb (or (System/getenv "BABASHKA") "./.tools/bin/bb")]
+                      (shell bb "-cp" "src:test" "-m" "axiom.run-tests"))}}}
