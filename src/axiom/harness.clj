@@ -23,7 +23,9 @@
   "Built-in harness profiles. They are plain argv templates, never shell
   strings. Config can override or extend them via :harnesses."
   {:opencode {:cmd "opencode"
-              :args ["run" "--model" "{{model}}" "{{prompt}}"]}})
+              :args ["run" "--model" "{{model}}" "{{prompt}}"]}
+   :shell-argv {:cmd "bash"
+                :args ["-lc" "{{prompt}}"]}})
 
 (defn build-invocation
   "Pure: turn cfg/world/state/act into a concrete process invocation.

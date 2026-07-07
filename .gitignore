@@ -3,6 +3,8 @@ logs/
 .axiom-logs*/
 .axiom*.lock
 .axiom.*.lock
+.dogfood-*/
+.release-smoke/
 .dogfood-*.out
 dogfood-git-run.tsv
 demo/.steady-state
@@ -18,6 +20,7 @@ examples/demo-recover/level_*.txt
 # Release artifacts
 release-dist/
 *.tar.gz
+*.tar.gz.sha256
 *.zip
 
 # Babashka / OS

@@ -47,6 +47,7 @@
             :thrash 3
             :config-path "configs/ux.edn"
             :hot-reload? true
+            :control-state :running
             :halt-reason :no-convergence
             :halt-iterations 4
             :failure-class :repeated-identical-actions
@@ -67,7 +68,8 @@
             :stall 1
             :thrash nil
             :config-path nil
-            :hot-reload? false}
+            :hot-reload? false
+            :control-state :running}
            (status/operator-facts {:name "running-demo"}
                                   nil
                                   [{:event :act
@@ -86,5 +88,6 @@
             :stall nil
             :thrash nil
             :config-path nil
-            :hot-reload? false}
+            :hot-reload? false
+            :control-state :running}
            (status/operator-facts {} nil [])))))

@@ -25,7 +25,8 @@
             [axiom.phase6-operator-test]
             [axiom.phase6-operator-ux-test]
             [axiom.phase7-harness-test]
-            [axiom.phase9-opencode-dogfood-test]))   ;; loaded so `t/run-tests` can find it below
+            [axiom.phase9-opencode-dogfood-test]
+            [axiom.phase10-control-test]))   ;; loaded so `t/run-tests` can find it below
 
 ;; ---------- predicate DSL ----------
 
@@ -236,5 +237,5 @@
 ;; passed (no failures, no errors). Runs BOTH the pure decide/predicate
 ;; suite AND every phase regression namespace, so the canonical `bb test`
 ;; command exercises the whole suite -- not just the no-shell core.
-(let [summary (t/run-tests 'axiom.run-tests 'axiom.git-test 'axiom.phase1-test 'axiom.phase2-test 'axiom.phase2-rungs-test 'axiom.phase2-guard-test 'axiom.phase3-test 'axiom.status-test 'axiom.notify-test 'axiom.phase4-bundles-test 'axiom.phase4-hotreload-test 'axiom.phase5-dogfood-test 'axiom.phase6-operator-test 'axiom.phase6-operator-ux-test 'axiom.phase7-harness-test 'axiom.phase9-opencode-dogfood-test)]
+(let [summary (t/run-tests 'axiom.run-tests 'axiom.git-test 'axiom.phase1-test 'axiom.phase2-test 'axiom.phase2-rungs-test 'axiom.phase2-guard-test 'axiom.phase3-test 'axiom.status-test 'axiom.notify-test 'axiom.phase4-bundles-test 'axiom.phase4-hotreload-test 'axiom.phase5-dogfood-test 'axiom.phase6-operator-test 'axiom.phase6-operator-ux-test 'axiom.phase7-harness-test 'axiom.phase9-opencode-dogfood-test 'axiom.phase10-control-test)]
   (System/exit (if (pos? (+ (:fail summary 0) (:error summary 0))) 1 0)))

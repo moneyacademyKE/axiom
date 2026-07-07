@@ -42,7 +42,7 @@ ACQUIRE lock -> OBSERVE world -> ASSERT axioms -> GOAL met?
 
 Verification:
 
-- Full suite: `./.tools/bin/bb -cp src:test -m axiom.run-tests` -- 72 tests, 401 assertions, 0 failures.
+- Full suite: `./.tools/bin/bb -cp src:test -m axiom.run-tests` -- 76 tests, 421 assertions, 0 failures.
 - Phase 0 demos still gate correctly after later phases: steady=0, stall=1, corrupt=1, recover=0.
 - Phase 2 ladder rungs perturb observably: `:reseed` command, `:reframe` prompt index, `:escalate-model` model index, bounded by `:no-convergence` halt.
 - Phase 3 produces status summaries, halt bundles, and optional notifications.

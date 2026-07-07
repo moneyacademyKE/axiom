@@ -17,7 +17,8 @@
             [clojure.java.io :as io]
             [clojure.string :as str]
             [axiom.log :as log]
-            [axiom.taxonomy :as taxonomy]))
+            [axiom.taxonomy :as taxonomy]
+            [axiom.control :as control]))
 
 (defn- safe-slurp
   "Read a file's contents, nil if absent."
@@ -55,7 +56,8 @@
              :stall (:stall last-iter)
              :thrash (:thrash last-iter)
              :config-path (:config-path cfg)
-             :hot-reload? (boolean (:hot-reload cfg))}
+             :hot-reload? (boolean (:hot-reload cfg))
+             :control-state (:state (control/state cfg))}
       halt (assoc :halt-reason (:reason halt)
                   :halt-iterations (:iterations halt))
       class (assoc :failure-class (:class class)
@@ -106,6 +108,7 @@
                             " severity=" (clojure.core/name (:severity facts))
                             " retryable=" (:retryable? facts)))
                  true            (conj (str "Iterations: " iter-count))
+                 (:control-state facts) (conj (str "Control: " (clojure.core/name (:control-state facts))))
                  (:hot-reload? facts)
                  (conj "Hot reload: on")
                  (and halted? (:iterations halt))

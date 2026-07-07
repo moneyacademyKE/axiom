@@ -26,7 +26,7 @@ Developer preview release of Axiom, a Babashka autonomous goal-fulfillment runne
 
 ### Validation
 
-- Full suite: 72 tests / 401 assertions / 0 failures / 0 errors.
+- Full suite: 76 tests / 421 assertions / 0 failures / 0 errors.
 - Config library: all `configs/*.edn` and `configs/dogfood/*.edn` load through `axiom.config/load-config`.
 - Demo exits: `steady=0`, `stall=1`, `corrupt=1`, `recover=0`.
 - Live `opencode` dogfood ladder levels 01-08 completed in a disposable git-backed workspace with objective checks green.

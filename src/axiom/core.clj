@@ -15,6 +15,7 @@
             [axiom.git :as git]
             [axiom.notify :as notify]
             [axiom.harness :as harness]
+            [axiom.control :as control]
             [babashka.process :refer [sh]]
             [clojure.string :as str]))
 
@@ -77,6 +78,13 @@
 
       (config/goal-met? world (:goal cfg))
       {:type :done :world world}
+
+      (and (:max-attempts cfg) (>= (or (:attempt state) 0) (:max-attempts cfg)))
+      {:type :halt :reason :budget-exhausted :budget :attempts :attempts (:attempt state 0) :world world}
+
+      (let [started (:started-at-ms state) now (:now-ms state) max-ms (:max-wall-ms cfg)]
+        (and max-ms started now (>= (- now started) max-ms)))
+      {:type :halt :reason :budget-exhausted :budget :wall-clock :elapsed-ms (- (:now-ms state) (:started-at-ms state)) :world world}
 
       ;; Phase 1: stall budget exhausted. If rollbacks remain, recover by
       ;; resetting to last-known-good; otherwise halt for good.
@@ -201,7 +209,8 @@
        (loop [iteration  0
               cfg         cfg
               last-mtime  init-mtime
-              state       {:stall 0 :thrash 0 :attempt 0 :seen-tuples #{}}]
+              state       {:stall 0 :thrash 0 :attempt 0 :seen-tuples #{}
+                           :started-at-ms (System/currentTimeMillis)}]
          (let [[cfg* maybe-mtime] (if (and (:hot-reload cfg false) config-path)
                                     (config/maybe-reload cfg config-path last-mtime)
                                     [cfg nil])
@@ -213,9 +222,13 @@
                             cfg)
                last-mtime (if swapped? maybe-mtime last-mtime)
                world      (observe/build-world (:observers cfg) {:dir workdir})
-               action     (if (>= iteration max-iters)
-                            {:type :halt :reason :max-iters :world {}}
-                            (decide cfg world state))]
+               state      (assoc state :now-ms (System/currentTimeMillis))
+               ctl        (control/state cfg)
+               action     (cond
+                            (= :stop-requested (:state ctl)) {:type :halt :reason :operator-stop :world world}
+                            (= :paused (:state ctl)) {:type :halt :reason :operator-paused :world world}
+                            (>= iteration max-iters) {:type :halt :reason :max-iters :world {}}
+                            :else (decide cfg world state))]
            (case (:type action)
              :done
              (do (log/event! log-dir :info "GOAL FULFILLED" {:world world})
