@@ -16,6 +16,7 @@
             [axiom.notify :as notify]
             [axiom.harness :as harness]
             [axiom.control :as control]
+            [axiom.budget :as budget]
             [babashka.process :refer [sh]]
             [clojure.string :as str]))
 
@@ -78,6 +79,10 @@
 
       (config/goal-met? world (:goal cfg))
       {:type :done :world world}
+
+      (budget/exhausted cfg state)
+      (merge {:type :halt :reason :budget-exhausted :world world}
+             (budget/exhausted cfg state))
 
       (and (:max-attempts cfg) (>= (or (:attempt state) 0) (:max-attempts cfg)))
       {:type :halt :reason :budget-exhausted :budget :attempts :attempts (:attempt state 0) :world world}
@@ -306,15 +311,17 @@
                        after   (config/progress-sig after-w (:progress cfg))
                        moved?  (not= before after)
                        state'  (-> state
+                                   (budget/add-usage result)
                                    (update :attempt inc)
                                    (assoc :stall (if moved? 0 (inc (:stall state 0))))
                                    (update :thrash (fnil inc 0))
                                    (assoc :seen-tuples (conj seen tuple)))]
                    (log/iteration! log-dir iteration
-                                   {:event :act :attempt attempt :exit (:exit result)
-                                    :duration-ms (- (System/currentTimeMillis) t0)
-                                    :progress-before before :progress-after after
-                                    :progressed? moved?})
+                                   (merge {:event :act :attempt attempt :exit (:exit result)
+                                           :duration-ms (- (System/currentTimeMillis) t0)
+                                           :progress-before before :progress-after after
+                                           :progressed? moved?}
+                                          (budget/totals state')))
                    (recur (inc iteration) cfg last-mtime state')))))))
        (finally
          (lock/release! lock-path))))))

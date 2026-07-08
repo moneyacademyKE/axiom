@@ -42,7 +42,7 @@ ACQUIRE lock -> OBSERVE world -> ASSERT axioms -> GOAL met?
 
 Verification:
 
-- Full suite: `./.tools/bin/bb -cp src:test -m axiom.run-tests` -- 76 tests, 424 assertions, 0 failures.
+- Full suite: `./.tools/bin/bb -cp src:test -m axiom.run-tests` -- 79 tests, 441 assertions, 0 failures.
 - Phase 0 demos still gate correctly after later phases: steady=0, stall=1, corrupt=1, recover=0.
 - Phase 2 ladder rungs perturb observably: `:reseed` command, `:reframe` prompt index, `:escalate-model` model index, bounded by `:no-convergence` halt.
 - Phase 3 produces status summaries, halt bundles, and optional notifications.
@@ -53,5 +53,6 @@ Verification:
 - Phase 8 adds config/reference and release checklist docs.
 - Phase 9 dogfoods the live `opencode` ladder against disposable git-backed workspaces.
 - Phase 10 adds file-backed `pause`, `resume`, and `stop` operator controls.
+- Phase 11 adds advisory cost/token accounting and budget-exhaustion halts.
 
 **Still deferred:** distributed/networked runs, GUI, cross-run learning, openspeq permanent-record merge without explicit approval, and a static Go port unless distribution pressure proves Babashka is not enough.

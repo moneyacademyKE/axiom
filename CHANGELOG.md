@@ -22,11 +22,12 @@ Developer preview release of Axiom, a Babashka autonomous goal-fulfillment runne
 - Operator facts/status UX for inspecting recent events, plus file-backed `pause`, `resume`, and `stop` controls.
 - External harness orchestration, including argv-safe `opencode` invocation.
 - `docs/opencode-dogfood.md` dogfood ladder for increasingly complex supervised `opencode` tasks.
-- Release/config documentation: `CONFIG.md`, `RELEASE.md`, and ADRs through Phase 10.
+- Release/config documentation: `CONFIG.md`, `RELEASE.md`, and ADRs through Phase 11.
+- Advisory cost/token accounting with budget-exhaustion halts.
 
 ### Validation
 
-- Full suite: 76 tests / 424 assertions / 0 failures / 0 errors.
+- Full suite: 79 tests / 441 assertions / 0 failures / 0 errors.
 - Config library: all `configs/*.edn` and `configs/dogfood/*.edn` load through `axiom.config/load-config`.
 - Demo exits: `steady=0`, `stall=1`, `corrupt=1`, `recover=0`.
 - Live `opencode` dogfood ladder levels 01-08 completed in a disposable git-backed workspace with objective checks green.

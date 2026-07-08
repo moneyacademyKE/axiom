@@ -10,7 +10,7 @@
 
 **Decision:** Add `axiom.control`, a tiny filesystem control plane under `<workdir>/.axiom-control`. `pause` and `stop` write marker files; `resume` clears the pause marker. The run loop checks control state between iterations and halts with `:operator-paused` or `:operator-stop` before another act runs. `status/operator-facts` includes `:control-state`, and the CLI exposes `bb axiom.clj pause|resume|stop <config.edn>` as operator commands. The taxonomy now classifies operator and explicit budget halts instead of reporting them as unknown.
 
-**Evidence:** Full suite green after Phase 10: **76 tests / 424 assertions / 0 failures / 0 errors** (`./.tools/bin/bb -cp src:test -m axiom.run-tests`). New namespace: `axiom.phase10-control-test`.
+**Evidence:** Full suite green after Phase 10/11 reconciliation: **79 tests / 441 assertions / 0 failures / 0 errors** (`./.tools/bin/bb -cp src:test -m axiom.run-tests`). New namespaces: `axiom.phase10-control-test`, `axiom.phase11-budget-test`.
 
 **Consequence:** Operators can intervene with plain files and auditable CLI commands. Pause is resumable, stop is final for that run, and there is still no new remote attack surface.
 

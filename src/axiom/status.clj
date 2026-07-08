@@ -123,6 +123,8 @@
                  (conj (str "Prompt/model index: " (or (:prompt-index facts) 0) "/" (or (:model-index facts) 0)))
                  (or (some? (:stall facts)) (some? (:thrash facts)))
                  (conj (str "Stall/thrash: " (or (:stall facts) 0) "/" (or (:thrash facts) 0)))
+                 (or (some? (:cost-usd last-iter)) (some? (:tokens last-iter)))
+                 (conj (str "Cost/tokens: " (or (:cost-usd last-iter) 0.0) "/" (or (:tokens last-iter) 0)))
                  world           (conj (str "Last world: " (pr-str world)))
                  (seq iters)     (conj "Recent events:")
                  recent          (conj recent))]
