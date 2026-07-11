@@ -3,6 +3,42 @@
 > Architecture Decision Records (ADR-style). Append-only, newest first. Each entry: context -> decision -> consequence.
 
 ---
+## ADR-0020 -- Phase 13: plan-promotion automation tool ('bb promote') accepted
+**Date:** 2026-07-11 - **Status:** Accepted
+
+**Context:** The project adopts the OpenSpec-based "openspeq" specification planning workflow (ADR-0005). Staging plans under `specs/_plans/` and merging spec deltas plus recording decisions in `specs/decision-log.md` was a manual, error-prone task. An automated "permanent-record merge" tool is needed.
+
+**Decision:** Create a lightweight, data-driven promotion script in `src/axiom/promote.clj` and expose it via the `bb promote <phase-slug>` task. The tool:
+1. Validates that `specs/_plans/<phase-slug>` contains `plan.md`.
+2. Scans `specs/decision-log.md` to find the highest ADR number and auto-assigns the next increment.
+3. Prepend any new ADR text from `adr.md` into the main decision log, replacing placeholders like `ADR-00NN`.
+4. Copies markdown files from `deltas/` to `specs/specs/`.
+5. Archives the plan folder to `_plans/_archive/`.
+
+**Consequence:** The "openspeq permanent-record merge" is now automated and robust. The core runner stays decoupled from documentation merging, while the script satisfies the <250 LOC constraint (under 100 LOC) and runs cleanly.
+
+---
+## ADR-0019 -- Refactor for <250 LOC constraints
+**Date:** 2026-07-11 - **Status:** Accepted
+
+**Context:** The user rules enforce a strict constraint that all files must be `< 250 LOC`. `src/axiom/core.clj` (327 lines) and `src/axiom/config.clj` (299 lines) both exceeded this limit.
+
+**Decision:** Refactor the codebase by splitting these namespaces into highly cohesive modules:
+1. Extract the predicate DSL interpreter (`eval-pred`, `num-cmp`, `integrity-violations`, `goal-met?`, `progress-sig`, `valid-pred?`) out of `src/axiom/config.clj` into a new namespace `axiom.predicates`.
+2. Extract the pure decision state machine (`decide`, `escalation-action`) out of `src/axiom/core.clj` into a new namespace `axiom.decision`.
+Update references in the unit test suite (`run_tests.clj`, `phase11_budget_test.clj`, `phase3_test.clj`).
+
+**Evidence:**
+- File line counts are now well under 250:
+  - `src/axiom/core.clj`: 208 lines
+  - `src/axiom/config.clj`: 151 lines
+  - `src/axiom/predicates.clj`: 81 lines
+  - `src/axiom/decision.clj`: 66 lines
+- Full unit test suite passes successfully: **83 tests / 474 assertions / 0 failures / 0 errors** (`bb test`).
+
+**Consequence:** Codebase satisfies the user constraints with improved module cohesion, lower coupling, and clear boundaries between pure functions (decision, predicates) and system/side-effecting logic (core).
+
+---
 ## ADR-0018 -- Phase 10: file-backed operator controls accepted
 **Date:** 2026-07-07 - **Status:** Accepted
 

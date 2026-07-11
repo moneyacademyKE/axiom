@@ -16,6 +16,7 @@
             [clojure.java.io :as io]
             [clojure.string :as str]
             [axiom.config :as config]
+            [axiom.predicates :as predicates]
             [axiom.log :as log]
             [babashka.fs :as fs]))
 
@@ -71,23 +72,23 @@
 
 (deftest valid-pred-recognises-the-full-grammar
   (testing "atoms"
-    (is (config/valid-pred? :ready?))
-    (is (not (config/valid-pred? "not a pred"))))
+    (is (predicates/valid? :ready?))
+    (is (not (predicates/valid? "not a pred"))))
   (testing "comparison / existence"
-    (is (config/valid-pred? {:op :>= :ref :n :value 3}))
-    (is (config/valid-pred? {:op := :ref :build-ok :value "pass"}))
-    (is (config/valid-pred? {:op :exists :ref :n}))
-    (is (not (config/valid-pred? {:op :>= :value 3})) "missing :ref")
-    (is (not (config/valid-pred? {:op := :ref :n})) "comparison missing :value"))
+    (is (predicates/valid? {:op :>= :ref :n :value 3}))
+    (is (predicates/valid? {:op := :ref :build-ok :value "pass"}))
+    (is (predicates/valid? {:op :exists :ref :n}))
+    (is (not (predicates/valid? {:op :>= :value 3})) "missing :ref")
+    (is (not (predicates/valid? {:op := :ref :n})) "comparison missing :value"))
   (testing "combinators recurse"
-    (is (config/valid-pred? {:op :and :exprs [{:op :>= :ref :a :value 1}
+    (is (predicates/valid? {:op :and :exprs [{:op :>= :ref :a :value 1}
                                               {:op :=  :ref :b :value 2}]}))
-    (is (config/valid-pred? {:op :not :expr {:op := :ref :b :value 2}}))
-    (is (not (config/valid-pred? {:op :and :exprs []})) "empty :and is invalid")
-    (is (not (config/valid-pred? {:op :and :exprs [{:op :bogus}]}))
+    (is (predicates/valid? {:op :not :expr {:op := :ref :b :value 2}}))
+    (is (not (predicates/valid? {:op :and :exprs []})) "empty :and is invalid")
+    (is (not (predicates/valid? {:op :and :exprs [{:op :bogus}]}))
         "a bad nested pred invalidates the parent"))
   (testing "unknown op -> invalid"
-    (is (not (config/valid-pred? {:op :bogus :ref :x :value 1})))))
+    (is (not (predicates/valid? {:op :bogus :ref :x :value 1})))))
 
 ;; ---------- load-config throws on validation errors ----------
 

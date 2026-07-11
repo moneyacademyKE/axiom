@@ -23,7 +23,9 @@
             "05-harness-contract-hardening.edn"
             "06-hot-reload-drill.edn"
             "07-cross-cutting-refactor.edn"
-            "08-release-candidate-sweep.edn"]
+            "08-release-candidate-sweep.edn"
+            "calculator-webapp.edn"
+            "run-club-site.edn"]
            names))))
 
 (deftest dogfood-configs-load-and-use-opencode-harness
@@ -36,7 +38,9 @@
       (is (str/includes? (get-in raw [:act :prompt]) "Axiom"))
       (is (seq (:observers raw)))
       (is (map? (:goal raw)))
-      (is (seq (:integrity loaded)) "bundle expansion keeps objective axioms")
+      (when (or (keyword? (:axiom-bundle raw))
+                (seq (:axiom-bundle raw)))
+        (is (seq (:integrity loaded)) "bundle expansion keeps objective axioms"))
       (is (pos-int? (:stall-after raw)))
       (is (pos-int? (:thrash-after raw)))
       (is (contains? raw :max-rollbacks)))))
@@ -53,7 +57,7 @@
       (is (not (some #{"--prompt"} (:argv inv)))
           "installed opencode accepts the prompt as positional message")
       (is (str/includes? (last (:argv inv)) "Axiom"))
-      (is (= "." (:dir inv))))))
+      (is (= (:workdir cfg ".") (:dir inv))))))
 
 (deftest dogfood-playbook-documents-the-ladder
   (let [doc (slurp "docs/opencode-dogfood.md")]

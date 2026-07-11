@@ -17,7 +17,7 @@
             [axiom.harness :as harness]
             [axiom.control :as control]
             [axiom.budget :as budget]
-            [babashka.process :refer [sh]]
+            [babashka.process :refer [sh check]]
             [clojure.string :as str]))
 
 (defn- escalation-action
@@ -43,8 +43,6 @@
        :escalation-index index
        :world world})))
 
-;; ---------- Pure decision ----------
-
 (defn decide
   "Pure: given config, world, and run-state, return the next action.
 
@@ -69,9 +67,6 @@
         stall-after   (:stall-after cfg 3)
         max-rollbacks (:max-rollbacks cfg 2)
         rollbacks     (:rollbacks state 0)
-        ;; Phase 2 rung 0: the no-convergence budget. Default off (huge) so
-        ;; Phase 0/1 configs are unaffected; set :thrash-after to trigger
-        ;; the escalation ladder when state changes but the goal never lands.
         thrash-after  (:thrash-after cfg Long/MAX_VALUE)]
     (cond
       (seq violations)
@@ -91,8 +86,6 @@
         (and max-ms started now (>= (- now started) max-ms)))
       {:type :halt :reason :budget-exhausted :budget :wall-clock :elapsed-ms (- (:now-ms state) (:started-at-ms state)) :world world}
 
-      ;; Phase 1: stall budget exhausted. If rollbacks remain, recover by
-      ;; resetting to last-known-good; otherwise halt for good.
       (>= (or (:stall state) 0) stall-after)
       (if (< rollbacks max-rollbacks)
         {:type :rollback :rollbacks rollbacks :max-rollbacks max-rollbacks
@@ -121,15 +114,19 @@
         pidx      (or (:prompt-index state 0) 0)]
     (nth as-vec (min pidx (dec (count as-vec))))))
 
-(defn- run-act!
-  "Execute the configured act via bash -c. Returns the process result map.
+(defn- act-timeout-ms
+  [cfg act]
+  (long (or (:timeout act)
+            (get-in cfg [:harness-success-poll :max-ms])
+            120000)))
 
-  act may be a single map {:sh \"cmd {{attempt}}\" :timeout <ms>} (Phase 0/1)
-  OR a vector of maps (Phase 2 :reframe ladder) -- the entry is selected by
-  (:prompt-index state 0), clamped to the last template so a stale index
-  never nil-pokes. {{model}} is rendered from (:models cfg) indexed by
-  (:model-index state 0) for the :escalate-model rung; absent :models ->
-  {{model}} collapses to an empty string, leaving Phase 0/1 templates intact."
+(defn- run-act!
+  "Execute the configured act.
+
+  Shell acts still run via bash -c and return a completed process result map.
+  Harness acts may opt into :spawn mode, returning immediately with a live
+  process handle so the core loop can poll the observed world and stop cleanly
+  once success is proven by observers."
   [cfg world state]
   (let [act     (selected-act cfg state)
         pidx    (or (:prompt-index state 0) 0)
@@ -139,17 +136,79 @@
         model   (when (seq models)
                   (nth models (min midx (dec (count models))) ""))]
     (if (:harness act)
-      (let [invocation (harness/build-invocation cfg world state act)]
+      (let [invocation (harness/build-invocation cfg world state act)
+            mode       (or (:mode act) :spawn)]
         (log/event! (:log-dir cfg) :info "acting via harness"
-                    (select-keys invocation [:harness :argv :prompt :model]))
-        (harness/invoke! cfg invocation))
+                    (select-keys (assoc invocation :mode mode)
+                                 [:harness :argv :prompt :model :mode]))
+        (harness/invoke! cfg (assoc invocation :mode mode)))
       (let [tmpl    (:sh act)
             cmd     (render-template tmpl (assoc world :attempt attempt :model (or model "")))
-            timeout (:timeout act 120000)]
+            timeout (act-timeout-ms cfg act)]
         (log/event! (:log-dir cfg) :info "acting"
                     {:cmd cmd :attempt attempt :prompt-index pidx :model model})
         (sh {:out :string :err :string :dir (:workdir cfg ".")
              :continue true :timeout timeout} "bash" "-c" cmd)))))
+
+(defn- process-alive?
+  [proc]
+  (try
+    (nil? @(:exit proc))
+    (catch Exception _ false)))
+
+(defn- maybe-stop-process!
+  [proc]
+  (when (process-alive? proc)
+    (try
+      (.destroy ^Process (:proc proc))
+      (catch Exception _ nil))))
+
+(defn- await-process-result
+  [proc]
+  (try
+    (check proc)
+    (catch Exception ex
+      (let [data (ex-data ex)]
+        (if (map? data)
+          data
+          (throw ex))))))
+
+(defn- harness-success-poll-result
+  [cfg result act]
+  (let [poll-ms     (long (or (get-in cfg [:harness-success-poll :interval-ms]) 200))
+        deadline-ms (+ (System/currentTimeMillis) (act-timeout-ms cfg act))
+        proc        (:process result)]
+    (loop []
+      (let [after-w  (observe/build-world (:observers cfg) {:dir (:workdir cfg ".")})
+            success? (and (empty? (config/integrity-violations after-w (:integrity cfg)))
+                          (config/goal-met? after-w (:goal cfg)))]
+        (cond
+          success?
+          (do
+            (maybe-stop-process! proc)
+            {:result (assoc (await-process-result proc) :terminated-early? true)
+             :after-world after-w
+             :early-success? true})
+
+          (not (process-alive? proc))
+          {:result (await-process-result proc)
+           :after-world after-w
+           :early-success? false}
+
+          (>= (System/currentTimeMillis) deadline-ms)
+          (do
+            (maybe-stop-process! proc)
+            (let [done          (await-process-result proc)
+                  after-timeout (observe/build-world (:observers cfg) {:dir (:workdir cfg ".")})]
+              {:result (assoc done :timed-out? true)
+               :after-world after-timeout
+               :early-success? (and (empty? (config/integrity-violations after-timeout (:integrity cfg)))
+                                    (config/goal-met? after-timeout (:goal cfg)))}))
+
+          :else
+          (do
+            (Thread/sleep poll-ms)
+            (recur)))))))
 
 (defn- halt-result!
   [cfg iteration action]
@@ -160,35 +219,15 @@
     (log/event! log-dir :halt (str "HALT: " (name reason))
                 (dissoc action :type))
     (log/iteration! log-dir iteration (assoc action :event :halt))
-    ;; ADR-0003 / Phase 1: restore last-known-good so a corrupting
-    ;; or non-progressing act cannot poison the workspace. No-op
-    ;; (returns nil) outside a git repo, so non-git demos are
-    ;; unaffected; :rolled-back? records whether it fired.
     (let [tag      (str tag-prefix "-last-good")
           restored (git/rollback! workdir tag)]
       (when restored
         (log/event! log-dir :info "rollback" {:to tag}))
-      ;; Phase 3: emit a self-contained diagnostic bundle so a human can
-      ;; name the blocker from the bundle alone (ROADMAP Phase 3 done-when).
-      ;; Written after the halt iteration record so the bundle includes it.
       (let [bundle (log/halt-bundle! log-dir action)]
-        ;; Phase 3: fire the opt-in notifier (ROADMAP Phase 3). No-op when
-        ;; :notify is absent, so Phase 0/1/2 configs + tests are unchanged.
         (notify/notify! cfg action bundle))
       {:status :halt :reason reason :iterations iteration
        :detail action :rolled-back? (boolean restored)})))
 
-;; ---------- The loop ----------
-
-;; ---------- Hot-reload cfg swap (Phase 4b) ----------
-
-;; The loop's OS context never reloads: workdir, lock, log-dir, checkpoint,
-;; config-path, and the hot-reload flag itself belong to the running process,
-;; not the brain. A swapped config contributes the brain (observers, goal,
-;; integrity, act, progress, budgets, notify, models, guard) while these
-;; loop-owned values stay fixed. Run-state (stall/thrash/attempt/rollbacks/
-;; prompt-index/model-index/seen-tuples) lives in `state`, never in cfg, so a
-;; swap can never lose progress bookkeeping.
 (defn- swap-cfg
   [old-cfg new-cfg]
   (merge new-cfg (select-keys old-cfg [:workdir :lock :log-dir :checkpoint
@@ -291,7 +330,8 @@
                    seen       (:seen-tuples state #{})
                    tuple      [pidx midx before]
                    identical? (and (:identical-retry-guard cfg false)
-                                   (contains? seen tuple))]
+                                   (contains? seen tuple))
+                   act        (selected-act cfg state)]
                (if identical?
                  (do
                    (log/event! log-dir :info "identical-skip"
@@ -304,23 +344,31 @@
                           (-> state
                               (assoc :stall (inc (:stall state 0)))
                               (update :thrash (fnil inc 0)))))
-                 (let [_       (git/tag! workdir (str (get-in cfg [:checkpoint :tag-prefix] "axiom") "-last-good"))
-                       t0      (System/currentTimeMillis)
-                       result  (run-act! cfg world state)
-                       after-w (observe/build-world (:observers cfg) {:dir workdir})
-                       after   (config/progress-sig after-w (:progress cfg))
-                       moved?  (not= before after)
-                       state'  (-> state
-                                   (budget/add-usage result)
-                                   (update :attempt inc)
-                                   (assoc :stall (if moved? 0 (inc (:stall state 0))))
-                                   (update :thrash (fnil inc 0))
-                                   (assoc :seen-tuples (conj seen tuple)))]
+                 (let [_        (git/tag! workdir (str (get-in cfg [:checkpoint :tag-prefix] "axiom") "-last-good"))
+                       raw      (run-act! cfg world state)
+                       wrapped  (if (= :spawn (:mode raw))
+                                  (harness-success-poll-result cfg raw act)
+                                  {:result raw
+                                   :after-world (observe/build-world (:observers cfg) {:dir workdir})
+                                   :early-success? false})
+                       result   (:result wrapped)
+                       after-w  (:after-world wrapped)
+                       after    (config/progress-sig after-w (:progress cfg))
+                       moved?   (or (:early-success? wrapped) (not= before after))
+                       state'   (-> state
+                                    (budget/add-usage result)
+                                    (update :attempt inc)
+                                    (assoc :stall (if moved? 0 (inc (:stall state 0))))
+                                    (update :thrash (fnil inc 0))
+                                    (assoc :seen-tuples (conj seen tuple)))]
                    (log/iteration! log-dir iteration
                                    (merge {:event :act :attempt attempt :exit (:exit result)
-                                           :duration-ms (- (System/currentTimeMillis) t0)
+                                           :duration-ms (:duration result)
                                            :progress-before before :progress-after after
-                                           :progressed? moved?}
+                                           :progressed? moved?
+                                           :early-success? (:early-success? wrapped false)
+                                           :terminated-early? (:terminated-early? result false)
+                                           :timed-out? (:timed-out? result false)}
                                           (budget/totals state')))
                    (recur (inc iteration) cfg last-mtime state')))))))
        (finally

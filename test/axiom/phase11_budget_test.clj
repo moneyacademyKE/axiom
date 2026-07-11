@@ -3,6 +3,7 @@
   (:require [clojure.test :refer [deftest is testing]]
             [axiom.budget :as budget]
             [axiom.core :as core]
+            [axiom.decision :as decision]
             [axiom.status :as status]
             [babashka.fs :as fs]))
 
@@ -20,18 +21,18 @@
 (deftest configured-budgets-exhaust-before-next-act
   (let [base {:goal {:op :>= :ref :n :value 1}
               :integrity []}]
-    (is (= :act (:type (core/decide (assoc base :max-cost-usd 1.0)
-                                    {:n 0}
-                                    {:cost-usd 0.99}))))
-    (let [a (core/decide (assoc base :max-cost-usd 1.0)
-                         {:n 0}
-                         {:cost-usd 1.0})]
+    (is (= :act (:type (decision/decide (assoc base :max-cost-usd 1.0)
+                                        {:n 0}
+                                        {:cost-usd 0.99}))))
+    (let [a (decision/decide (assoc base :max-cost-usd 1.0)
+                             {:n 0}
+                             {:cost-usd 1.0})]
       (is (= :halt (:type a)))
       (is (= :budget-exhausted (:reason a)))
       (is (= :cost-usd (:budget a))))
-    (let [a (core/decide (assoc base :max-tokens 10)
-                         {:n 0}
-                         {:tokens 10})]
+    (let [a (decision/decide (assoc base :max-tokens 10)
+                             {:n 0}
+                             {:tokens 10})]
       (is (= :halt (:type a)))
       (is (= :tokens (:budget a))))))
 
@@ -49,6 +50,8 @@
                  :progress :n
                  :integrity []
                  :max-cost-usd 0.01
+                 :models ["surplus/gpt-5.4-mini"]
+                 :opencode-config {"provider" {"surplus" {"models" {"gpt-5.4-mini" {}}}}}
                  :act {:harness :opencode
                        :prompt "spend once"}
                  :harness-transport (fn [_]

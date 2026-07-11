@@ -1,4 +1,7 @@
 {:paths ["src" "test"]
  :tasks {test {:doc "Run unit tests"
               :task (let [bb (or (System/getenv "BABASHKA") "./.tools/bin/bb")]
-                      (shell bb "-cp" "src:test" "-m" "axiom.run-tests"))}}}
+                      (shell bb "-cp" "src:test" "-m" "axiom.run-tests"))}
+         promote {:doc "Promote a staged plan to the archive: bb promote <phase-slug>"
+                  :requires ([axiom.promote])
+                  :task (axiom.promote/-main *command-line-args*)}}}
